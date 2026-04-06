@@ -5,9 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Account;
-
+use App\Services\ReportService;
 class ReportController extends Controller
 {
+    protected $service;
+    public function __construct(ReportService $service)
+    {
+        $this->service = $service;
+    }
+    
     public function ledger(Request $request)
     {
         $accounts = \App\Models\Account::leaf()->get();
@@ -101,28 +107,33 @@ class ReportController extends Controller
         return view('report.hutang', compact('data'));
     }
 
-    public function trialBalance()
+    public function trialBalance(Request $request)
     {
-        $accounts = \App\Models\Account::all();
+        $data = $this->service->trialBalance(
+            $request->start_date,
+            $request->end_date
+        );
 
-        $data = [];
-
-        foreach ($accounts as $acc) {
-
-            $debit = \App\Models\JournalDetail::where('account_id', $acc->id)
-                ->sum('debit');
-
-            $credit = \App\Models\JournalDetail::where('account_id', $acc->id)
-                ->sum('credit');
-
-            $data[] = [
-                'account' => $acc->name,
-                'debit' => $debit,
-                'credit' => $credit
-            ];
-        }
-
-        return view('report.trial_balance', compact('data'));
+        return view('report.trial-balance', compact('data'));
     }
+
+    public function incomeStatement(Request $request)
+    {
+        $data = $this->service->incomeStatement(
+            $request->start_date,
+            $request->end_date
+        );
+
+        return view('report.income', compact('data'));
+    }
+    
+    public function balanceSheet()
+    {
+        $data = $this->service->balanceSheet();
+
+        return view('report.balance-sheet', compact('data'));
+    }
+
+    
 }
 

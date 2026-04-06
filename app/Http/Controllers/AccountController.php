@@ -33,6 +33,12 @@ class AccountController extends Controller
         return view('account.create', compact('parents'));
     }
 
+    public function edit(Account $account)
+    {
+         $parents = Account::where('id', '!=', $account->id)->get();
+        return view('account.edit', compact('account', 'parents'));
+    }
+
     
     public function store(Request $request)
     {

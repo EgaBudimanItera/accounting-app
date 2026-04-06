@@ -26,15 +26,15 @@ use App\Http\Controllers\ReportController;
 // Route::get('/report/ledger/{id}', [ReportController::class, 'ledger']);
 Route::get('/report/ledger', [ReportController::class, 'ledger']);
 Route::get('/report/trial-balance', [ReportController::class, 'trialBalance']);
-Route::get('/report/hutang', [ReportController::class, 'hutangPiutang']);
-
+Route::get('/report/income', [ReportController::class, 'incomeStatement']);
+Route::get('/report/balance-sheet', [ReportController::class, 'balanceSheet']);
 use App\Http\Controllers\AccountController;
 Route::prefix('accounts')->group(function () {
     Route::get('/', [AccountController::class, 'index']);
     Route::get('/create', [AccountController::class, 'create']);
     Route::post('/store', [AccountController::class, 'store']);
-
-    Route::get('/{id}/edit', [AccountController::class, 'edit']);
+    
+    Route::get('/{account}/edit', [AccountController::class, 'edit']);
     Route::put('/{id}', [AccountController::class, 'update']);
 
     Route::delete('/{id}', [AccountController::class, 'destroy']);

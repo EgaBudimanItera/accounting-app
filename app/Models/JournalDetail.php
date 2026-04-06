@@ -24,4 +24,5 @@ class JournalDetail extends Model
     {
         return $this->journalDetails()->exists();
     }
+
 }

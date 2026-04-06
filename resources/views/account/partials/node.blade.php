@@ -17,7 +17,7 @@
         <strong>{{ $account->code }}</strong> - {{ $account->name }}
     </div>
 
-    <div>
+    <!-- <div>
         <span class="badge bg-secondary">{{ $account->type }}</span>
 
         @if($account->normal_balance == 'debit')
@@ -25,7 +25,7 @@
         @else
             <span class="badge bg-danger">Credit</span>
         @endif
-    </div>
+    </div> -->
     <div class="d-flex gap-2">
 
         {{-- EDIT --}}

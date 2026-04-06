@@ -13,7 +13,6 @@ class JournalSeeder extends Seeder
 {
     public function run()
     {
-        // disable FK biar aman
         \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         JournalDetail::truncate();
         Journal::truncate();
@@ -21,17 +20,9 @@ class JournalSeeder extends Seeder
 
         $user = User::first();
 
-        // 🔥 AMBIL HANYA AKUN LEAF
         $leafAccounts = Account::doesntHave('children')->get();
-
-        // mapping akun berdasarkan nama (leaf only)
         $accounts = $leafAccounts->keyBy('name');
 
-        /*
-        |--------------------------------------------------------------------------
-        | POLA TRANSAKSI REALISTIS
-        |--------------------------------------------------------------------------
-        */
         $patterns = [
             ['debit' => 'Kas', 'credit' => 'Pendapatan Usaha'],
             ['debit' => 'Bank', 'credit' => 'Pendapatan Usaha'],
@@ -48,13 +39,11 @@ class JournalSeeder extends Seeder
 
             $date = Carbon::create(2026, 3, rand(1, 28));
 
-            // pilih pola
             $pattern = $patterns[array_rand($patterns)];
 
             $debitAccount = $accounts[$pattern['debit']] ?? null;
             $creditAccount = $accounts[$pattern['credit']] ?? null;
 
-            // fallback (kalau nama tidak ketemu)
             if (!$debitAccount || !$creditAccount) {
                 $debitAccount = $leafAccounts->random();
                 $creditAccount = $leafAccounts
@@ -62,13 +51,17 @@ class JournalSeeder extends Seeder
                     ->random();
             }
 
-            // nominal
-            $amount = rand(50000, 2000000);
+            /*
+            |--------------------------------------------------------------------------
+            | 🔥 FIX: SATU NILAI SAJA (JANGAN PISAH)
+            |--------------------------------------------------------------------------
+            */
+            $baseAmount = rand(50000, 2000000);
+            $variance = rand(0, 20000);
 
-            // variasi kecil biar natural
-            $variance = rand(0, 1) ? rand(0, 20000) : 0;
+            // 👉 SATU NILAI FINAL
+            $finalAmount = $baseAmount + $variance;
 
-            // buat jurnal
             $journal = Journal::create([
                 'date' => $date,
                 'description' => 'Transaksi #' . $i,
@@ -77,24 +70,22 @@ class JournalSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | DETAIL JURNAL (DOUBLE ENTRY)
+            | DETAIL (PASTI BALANCE)
             |--------------------------------------------------------------------------
             */
 
-            // DEBIT
             JournalDetail::create([
                 'journal_id' => $journal->id,
                 'account_id' => $debitAccount->id,
-                'debit' => $amount + ($debitAccount->normal_balance == 'debit' ? $variance : 0),
+                'debit' => $finalAmount,
                 'credit' => 0,
             ]);
 
-            // CREDIT
             JournalDetail::create([
                 'journal_id' => $journal->id,
                 'account_id' => $creditAccount->id,
                 'debit' => 0,
-                'credit' => $amount + ($creditAccount->normal_balance == 'credit' ? $variance : 0),
+                'credit' => $finalAmount,
             ]);
         }
     }

@@ -49,4 +49,97 @@ class AccountingService
             return $journal;
         });
     }
+
+    public function closingYear($year)
+    {
+        $startDate = $year . '-01-01';
+        $endDate   = $year . '-12-31';
+
+        $accounts = \App\Models\Account::doesntHave('children')->get();
+
+        $journal = \App\Models\Journal::create([
+            'date' => $endDate,
+            'description' => 'Tutup Buku Tahun ' . $year,
+            'created_by' => auth()->id() ?? 1
+        ]);
+
+        $totalRevenue = 0;
+        $totalExpense = 0;
+
+        foreach ($accounts as $acc) {
+
+            if (!$acc->isIncomeStatement()) {
+                continue;
+            }
+
+            $balance = app(\App\Services\ReportService::class)
+                ->getBalance($acc->id, $startDate, $endDate);
+
+            if ($balance == 0) continue;
+
+            /*
+            |--------------------------------------------------------------------------
+            | REVENUE → DI DEBIT (NOLKAN)
+            |--------------------------------------------------------------------------
+            */
+            if ($acc->type == 'revenue') {
+
+                \App\Models\JournalDetail::create([
+                    'journal_id' => $journal->id,
+                    'account_id' => $acc->id,
+                    'debit' => $balance,
+                    'credit' => 0,
+                ]);
+
+                $totalRevenue += $balance;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | EXPENSE → DI CREDIT (NOLKAN)
+            |--------------------------------------------------------------------------
+            */
+            if ($acc->type == 'expense') {
+
+                \App\Models\JournalDetail::create([
+                    'journal_id' => $journal->id,
+                    'account_id' => $acc->id,
+                    'debit' => 0,
+                    'credit' => $balance,
+                ]);
+
+                $totalExpense += $balance;
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | LABA DITAHAN
+        |--------------------------------------------------------------------------
+        */
+        $profit = $totalRevenue - $totalExpense;
+
+        $retained = \App\Models\Account::where('name', 'Laba Ditahan')->first();
+
+        if (!$retained) {
+            throw new \Exception('Akun Laba Ditahan belum ada!');
+        }
+
+        // kalau laba
+        if ($profit > 0) {
+            \App\Models\JournalDetail::create([
+                'journal_id' => $journal->id,
+                'account_id' => $retained->id,
+                'debit' => 0,
+                'credit' => $profit,
+            ]);
+        } else {
+            \App\Models\JournalDetail::create([
+                'journal_id' => $journal->id,
+                'account_id' => $retained->id,
+                'debit' => abs($profit),
+                'credit' => 0,
+            ]);
+        }
+    }
 }
